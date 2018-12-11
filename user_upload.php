@@ -26,6 +26,9 @@ class UserUpload
 	private	$dbname="phptest";
 	private	$port=3306;	
 	
+	private	$fname = "";	
+	private $fnameIsSet = false;
+	
 	/**
 	* 		Execution rules: 
 	*		1. Will only execute --[command] per input line.
@@ -41,7 +44,7 @@ class UserUpload
 	*/
 	function menu(){
 		
-		echo "**Current Database Parameters:** \n";
+		echo "\n**Current Database Parameters:** \n";
 		echo "**HOST: $this->host,	 USER: $this->user, 	DBNAME: $this->dbname, 	PORT: $this->port ** \n\n";
 		
 		echo "Enter Commands: \n";
@@ -63,11 +66,30 @@ class UserUpload
 				try {
 					if(strcmp($command,"--file") == 0)
 					{
+						if( sizeof($line_arr) > 1)
+						{
+							$val =  trim($line_arr[$i+1]);
+							$val = strtolower($val);
+							
+							if(preg_match('/^[a-z0-9-.]+$/', $val)) 
+							{
+								$this->fname = $val;	
+								$this->fnameIsSet = true;
+								$i = $i +1;	
+							} 
+							else 
+							{
+								throw new InvalidArgumentException("Incorrect File Input");
+							}
+						}
+						else{
+							throw new InvalidArgumentException("Incorrect File Input");
+						}
 						
 					}
 					elseif(strcmp($command,"--create_table") == 0)
 					{
-		
+
 						$this->connectToDatabase();
 						//createTable($con);
 						echo "\n";
@@ -79,17 +101,74 @@ class UserUpload
 					elseif(strcmp($command,"-u") == 0)
 					{
 						//Set User
-						echo "\n";
+						if ($this->readValue($command,$line_arr, $i))
+						{
+							$i = $i +1;
+						}
+						else
+						{
+							$i = $i +1;
+							throw new InvalidArgumentException("Incorrect User Input");
+							
+						}
 					}				
 					elseif(strcmp($command,"-p") == 0)
 					{
 						//Set Password
-						echo "\n";
+						if ($this->readValue($command,$line_arr, $i))
+						{
+							$i = $i +1;
+						}
+						else
+						{
+							$i = $i +1;
+							throw new InvalidArgumentException("Incorrect Password Input");
+							
+						}
 					}			
 					elseif(strcmp($command,"-h") == 0)
 					{
 						//Set Host
-						echo "\n";
+						if ($this->readValue($command,$line_arr, $i))
+						{
+							$i = $i +1;
+						}
+						else
+						{
+							$i = $i +1;
+							throw new InvalidArgumentException("Incorrect Host Input");
+							
+						}
+						
+					}					
+					elseif(strcmp($command,"-d") == 0)
+					{
+						//Set DBNAME
+						if ($this->readValue($command,$line_arr, $i))
+						{
+							$i = $i +1;
+						}
+						else
+						{
+							$i = $i +1;
+							throw new InvalidArgumentException("Incorrect DBname Input");
+							
+						}
+						
+					}					
+					elseif(strcmp($command,"-pt") == 0)
+					{
+						//Set PORT
+						if ($this->readValue($command,$line_arr, $i))
+						{
+							$i = $i +1;
+						}
+						else
+						{
+							$i = $i +1;
+							throw new InvalidArgumentException("Incorrect port Input");
+							
+						}
 					}			
 					elseif(strcmp($command,"--help") == 0)
 					{
@@ -103,7 +182,7 @@ class UserUpload
 					}
 					else
 					{
-						throw new InvalidArgumentException("Incorrect Input");
+						throw new InvalidArgumentException("Incorrect Command Input");
 					}
 				}
 				catch (Exception $e){
@@ -112,12 +191,15 @@ class UserUpload
 				
 				$i = $i +1;
 			}
-			//loop
+			//loop menu
 			$this->menu();
 		}
 		echo "input passed";	
 	}
 
+	/**
+	*
+	*/
 	function connectToDatabase()
 	{
 		$port=3306;
@@ -130,79 +212,65 @@ class UserUpload
 
 		return $con;
 	}
-
-
+	
 	/**
+	*	Looks ahead in the line then reads the input value for single dash '-' inputs. If correct db param is set. 
+	*	Input line index is incremented after read. 
+	*	@returns boolean on success/fail.
 	*/
-	function completeUserDatabaseInputs($userIsSet, $passIsSet, $hostIsSet, $dbnameIsSet, $host, $user, $password, $dbname){
-
-		if(!$userIsSet)
-		{
-			echo "Type: 'Default' to connect with default user name: 'root'. \n";
-			echo "Type: 'new' to enter new user name. \n";
-			$handle = fopen ("php://stdin","r");
-			$line = fgets($handle);
-			fclose($handle);
+	function readValue($command,$line_arr, $ind){
 			
-			if(trim($line) == 'new'){
-				echo "Enter new value: \n";
-				$handle = fopen ("php://stdin","r");
-				$val = fgets($handle);
-				$user = $val;
-			}else{
-				echo "Using default value \n";
-			}
-		}
-		if(!$passIsSet)
+		if( sizeof($line_arr) > 1)
 		{
-			echo "Type: 'Default' to connect with default password. \n";
-			echo "Type: 'new' to enter new password. \n";
-			$handle = fopen ("php://stdin","r");
-			$line = fgets($handle);
-			fclose($handle);
-			if(trim($line) == 'new'){
-				echo "Enter new value: \n";
-				$handle = fopen ("php://stdin","r");
-				$val = fgets($handle);
-				$password = $val;
-			}else{
-				echo "Using default value \n";
-			}
-		}
-		if(!$hostIsSet)
-		{
-			echo "Type: 'Default' to connect with default host: 127.0.0.1  \n";
-			echo "Type: 'new' to enter new host. \n";
-			$handle = fopen ("php://stdin","r");
-			$line = fgets($handle);
-			fclose($handle);
-			if(trim($line) == 'new'){
-				echo "Enter new value: \n";
-				$handle = fopen ("php://stdin","r");
-				$val = fgets($handle);
-				$host = $val;
-			}else{
-				echo "Using default value \n";
-			}
-		}
-		if(!$dbnameIsSet)
-		{
-			echo "Type: 'Default' to connect with default Database Name: 'phptest'  \n";
-			echo "Type: 'new' to enter Database Name. \n";
-			$handle = fopen ("php://stdin","r");
-			$line = fgets($handle);
-			fclose($handle);
-			if(trim($line) == 'new'){
-				echo "Enter new value: \n";
-				$handle = fopen ("php://stdin","r");
-				$val = fgets($handle);
-				$dbname = $val;
-			}else{
-				echo "Using default value \n";
-			}
-		}
-
-		return connectToDatabase($host, $user, $password, $dbname);
+			$val =  trim($line_arr[$ind+1]);
+			$val = strtolower($val);
+			
+			switch ($command) {
+				case '-u':
+					if(preg_match('/^[a-z0-9-]+$/', $val)) 
+					{
+						$this->user = $val;	
+						echo "New User: $val \n";
+						return true;
+					} 
+					break;
+				case '-p':
+					if(preg_match('/([A-Za-z0-9])+/',$val)) 
+					{
+						$this->password = $val;	
+						echo "New PASSWORD entered \n";
+						return true;
+					} 
+					break;					
+				case '-h':
+					if(filter_var($val, FILTER_VALIDATE_IP)) 
+					{
+						$this->host = $val;	
+						echo "New Host: $val \n";
+						return true;
+					}
+					break;				
+				case '-d':
+					if(preg_match('/([A-Za-z0-9])+/',$val))
+					{
+						$this->dbname = $val;	
+						echo "New DBNAME: $val \n";
+						return true;
+					}
+					break;	
+				case '-pt':					
+					if(is_numeric($val))
+					{
+						$this->port = $val;	
+						echo "New PORT: $val \n";
+						return true;
+					}
+					break;
+				default:
+					echo "Incorrect command input";
+			}	
+		}	
+		return false;
 	}
 
 
@@ -224,4 +292,114 @@ class UserUpload
 		
 		
 	}
+	
+	function insertFromFile($con){
+	
+		$row = 1;
+		if (($handle = fopen("users.csv", "r")) !== FALSE) 
+		{
+			
+			$col_num = 0; 
+			$columns = "";
+			$email_arr = array();
+			
+			while (($data = fgetcsv($handle, 1000, ",")) !== FALSE)
+			{
+				
+				if($row == 1){
+					//reads column names
+					$col_num = count($data);
+					$columns = trim(implode(",", $data));
+					//echo $columns."\n";	
+				}
+				else
+				{
+					$value_num = count($data);
+					$values_arr = array();
+					$valid_line = false;
+					
+					if($value_num == $col_num){
+						for ($i=0; $i < $value_num; $i++) 
+						{
+							$str = trim($data[$i]);
+							$str = strtolower($str);
+											
+							switch ($i) {
+								case 0:
+									$str = preg_replace("/[^A-Za-z0-9\-']/", "", $str);
+									$str = str_replace("'", "''", $str);
+									$str = "'".ucfirst($str)."'";
+									array_push($values_arr,$str);
+									break;
+								case 1:
+									$str = preg_replace("/[^A-Za-z0-9\-']/", "", $str);
+									$str = str_replace("'", "''", $str);
+									$str = "'".ucfirst($str)."'";
+									array_push($values_arr,$str);
+									break;
+								case 2:
+									if (!filter_var($str, FILTER_VALIDATE_EMAIL) === false) 
+									{
+										$valid_line = true;
+										
+										//duplicate check
+										if(!in_array($str, $email_arr))
+										{
+											array_push($email_arr,$str);
+										}
+										else
+										{
+											echo("\n\nDetected: Duplicate email address - $str. Skipping insertion. \n");
+											$valid_line = false;
+										}
+										$str = str_replace("'", "''", $str);
+										$str = "'".$str."'";
+										array_push($values_arr,$str);
+									}
+									else 
+									{
+										$valid_line = false;
+										echo("\n\nDetected:  $str is not a valid email address. Skipping insertion. \n");
+									}
+									break;
+								default:
+									//should'nt occur
+									$valid_line = false;
+									echo "";
+							} 
+							
+							//assign to values str
+							$values = trim(implode(",", $values_arr));
+						}
+						
+						if($valid_line)
+						{
+							echo "\n";
+							$sql = "INSERT INTO users ($columns) VALUES ($values); ";
+							echo $sql;
+							echo "\n";
+						
+							if (mysqli_query($con, $sql)) {
+								echo "Table Users Insertion Success";
+							} else {
+								echo "Insertion Error: " . mysqli_error($con);
+							}					
+						} 
+					}
+					else
+					{
+						echo "File Format Error. Incorrect number of values for this row.";
+						exit;
+					}
+				}
+				
+				$row++;	
+			}
+			mysqli_close($con);
+			fclose($handle);
+		}
+		echo "\n";
+	}
+	
+	
 }
