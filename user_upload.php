@@ -2,7 +2,7 @@
 
 /**
 *	Michael Rimmer Catalyst PHP test script.
-*
+*	Check the README for further information. 
 */
 
 echo "\n------------user_upload------------\n\n";
@@ -10,14 +10,11 @@ echo "\n------------user_upload------------\n\n";
 $user_uploader = new UserUpload();
 $user_uploader->init();
 $user_uploader->menu();
- 
-echo "\n\n------------Finish------------\n";
 
 /**
 *	
 *
 */
-
 class UserUpload
 {
 	//Database defaults
@@ -31,16 +28,18 @@ class UserUpload
 	private $fnameIsSet = false;
 	
 	/**
-	*
+	* Initialises some constants
 	*/
 	function init(){
-			define("NAME", 0);
-			define("SURNAME", 1);
-			define("EMAIL", 2);
+		define("NAME", 0);
+		define("SURNAME", 1);
+		define("EMAIL", 2);
 	}
 	
 	/**
-	* 		Execution rules: 
+	* 		Menu for control options for the script execution. Menu loops on itself.
+	*
+	*		Execution rules: 
 	*		1. Will only execute --[command] per input line.
 	*		2. Will execute multiple -[command] per input line.
 	*													
@@ -50,6 +49,8 @@ class UserUpload
 	*		-u [USER] -p [PASSWORD] -d [DBNAME] -pt [PORT]						Sets Database parameters. Otherwise Default is set. 
 	*		--help																Displays commands
 	*		--dry_run															Creates Table but only prints sanitized values
+	*
+	*		@throws InvalidArgumentException
 	*
 	*/
 	function menu(){
@@ -82,7 +83,7 @@ class UserUpload
 				echo "\n";
 				$command = trim($line_arr[$i]);
 				
-				//TODO: add if starts with '--' and line_arr > 1 then error with 'one command per entry'. 
+				//TODO: add if starts with '--' and line_arr > 1 then error with 'one  -- command per entry'. 
 				
 				try {
 					if(strcmp($command,"--file") == 0)
@@ -194,7 +195,7 @@ class UserUpload
 					}						
 					elseif(strcmp($command,"--exit") == 0 || strcmp($command,"x") == 0)
 					{
-						echo "Exiting \n";
+						echo "\n\n------------Exiting------------\n";
 						exit;
 					}
 					else
@@ -224,8 +225,13 @@ class UserUpload
 
 	/**
 	*	Looks ahead in the line then reads the input value for single dash '-' inputs. If correct db param is set. 
-	*	Input line index is incremented after read. 
-	*	@returns boolean on success/fail.
+	*	The line is split into a array for reading. Input line index is incremented after read. 
+	*	
+	*	@param $command		string			directive input preceeding value to be read	
+	*	@param $line_array	string array	array of string inputs delimited by spaces	
+	*	@param $ind			int				current index position on line array	
+	*	
+	*	@returns boolean on read success/fail.
 	*/
 	function readValue($command,$line_arr, $ind){
 			
@@ -280,8 +286,7 @@ class UserUpload
 	}
 	
 	/**
-	*
-	*
+	*	Displays help menu.
 	*/
 	function displayHelp(){
 		echo "*****Script Command Directives***** \n\n";
@@ -300,11 +305,11 @@ class UserUpload
 	}
 
 	/**
-	*
+	*	Connects to database using pre-set database parameters.  
+	*	@returns $con	mysqli connection object
 	*/
 	function connectToDatabase()
 	{
-		$port=3306;
 		$socket="";
 
 		$con = new mysqli($this->host, $this->user, $this->password, $this->dbname, $this->port, $socket)
@@ -315,6 +320,12 @@ class UserUpload
 		return $con;
 	}
 	
+	/**
+	*	Checks if a table of a specified name exists on current mysqli connection.
+	* 	@param mysqli $con 		database connection	object
+	* 	@param string $table	table name to be checked
+	* 	@returns boolean		table does/does not exist on connection
+	*/
 	function tableExists($con, $table){
 		if ($result = $con->query("SHOW TABLES LIKE '".$table."'")) {
 			if($result->num_rows == 1) {
@@ -325,7 +336,12 @@ class UserUpload
 			return false;
 		}	
 	}
-	
+	/**
+	*	Checks if a table entry of a specified email exists on table.
+	* 	@param mysqli $con 		database connection	object
+	* 	@param string $email	email name to be checked
+	* 	@returns boolean		entry does/does not exist in table
+	*/
 	function entryExists($con, $email){
 		if ($result = $con->query("SELECT * FROM users WHERE email='".$email."'")) {
 			if($result->num_rows > 0) {
@@ -337,6 +353,11 @@ class UserUpload
 		}
 	}
 
+	/**
+	*	Creates Users Table
+	*	@param 		$con	mysqli connection object
+	*	@returns 	$con	mysqli connection object
+	*/
 	function createTable($con)
 	{
 		$sql = "CREATE TABLE users (
@@ -350,12 +371,17 @@ class UserUpload
 		} else {
 			echo "Error creating table: " . mysqli_error($con);
 		}
-
-		mysqli_close($con);
 		
-		
+		return $con;
+	
 	}
 	
+	/**
+	*	Executes --create_table and --dry_run commands. The dry_run command removes the database elements of the function. Method inputs csv data from 
+	*	file and validates data while being read. Data is insert into 'users' table on pre-set database and host.  Duplicate emails are shown and skipped.
+	*
+	* 	@param boolean $$updateSQLTable 	When true designates that the execution will involve the database. On dry_run this is set to false.
+	*/
 	function insertFromFile($updateSQLTable){
 	
 		$row = 1;
@@ -372,13 +398,14 @@ class UserUpload
 			if($updateSQLTable)
 			{
 				$con = $this->connectToDatabase();
+				
 				if($this->tableExists($con, 'users'))
 				{
 					echo "Database has table.\n";
 				}
 				else
 				{
-					$this->createTable($con);
+					$con = $this->createTable($con);
 				}
 			}
 			
